@@ -1,27 +1,11 @@
-// types/global.d.ts
-export interface Task {
-  _id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: "Low" | "Medium" | "Urgent";
-  deadline?: string;
-}
+import { Mongoose } from "mongoose";
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      email: string;
-      name?: string;
-    };
+declare global {
+  namespace NodeJS {
+    interface Global {
+      mongoose?: { conn: Mongoose | null; promise: Promise<Mongoose> | null };
+    }
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    email: string;
-    name?: string;
-  }
-}
+export {};
