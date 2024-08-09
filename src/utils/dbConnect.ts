@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 
+declare global {
+  var mongoose: any;
+}
+
 const MONGO_URI = process.env.MONGO_URI || "";
 
 if (!MONGO_URI) {

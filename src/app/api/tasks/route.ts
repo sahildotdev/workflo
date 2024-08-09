@@ -1,33 +1,53 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import dbConnect from "@/utils/dbConnect";
 import Task from "@/models/Task";
-import { verifyToken } from "@/utils/auth";
 
-export async function GET(req: NextRequest) {
+// Secret key for JWT (should be in .env)
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
+export async function POST(req: Request) {
   await dbConnect();
-  const token = req.headers.get("Authorization")?.split(" ")[1];
-  const { userId } = verifyToken(token);
 
-  const tasks = await Task.find({ user: userId });
+  try {
+    const token = req.headers.get("Authorization")?.split(" ")[1]; // Extract token from the Authorization header
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "No token provided" },
+        { status: 401 }
+      );
+    }
 
-  return NextResponse.json(tasks);
-}
+    const decoded = jwt.verify(token, JWT_SECRET);
 
-export async function POST(req: NextRequest) {
-  await dbConnect();
-  const token = req.headers.get("Authorization")?.split(" ")[1];
-  const { userId } = verifyToken(token);
+    let userId: string;
+    if (typeof decoded !== "string" && decoded.userId) {
+      userId = decoded.userId;
+    } else {
+      return NextResponse.json(
+        { success: false, message: "Invalid token" },
+        { status: 401 }
+      );
+    }
 
-  const { title, description, status, priority, deadline } = await req.json();
-  const task = new Task({
-    title,
-    description,
-    status,
-    priority,
-    deadline,
-    user: userId,
-  });
-  await task.save();
+    const { title, description, status, priority, deadline } = await req.json();
 
-  return NextResponse.json(task);
+    // Create a new task for the user
+    const newTask = await Task.create({
+      userId,
+      title,
+      description,
+      status,
+      priority,
+      deadline,
+    });
+
+    return NextResponse.json({ success: true, task: newTask });
+  } catch (err) {
+    console.error("Error creating task", err);
+    return NextResponse.json(
+      { success: false, message: "Server error" },
+      { status: 500 }
+    );
+  }
 }
