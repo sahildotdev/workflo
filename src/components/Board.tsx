@@ -8,8 +8,8 @@ const Board = ({ tasks }: any) => {
   const columns = {
     "To-Do": [],
     "In Progress": [],
-    "Under Review": [],
     Completed: [],
+    "Under Review": [],
   };
 
   tasks.forEach((task: { status: string | number }) => {

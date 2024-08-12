@@ -11,7 +11,6 @@ export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
 
-    // Check if the user exists in the database
     const user: IUser | null = await User.findOne({ email });
     if (!user) {
       return NextResponse.json(
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Compare the provided password with the hashed password in the database
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return NextResponse.json(
@@ -29,12 +27,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // If password matches, create a JWT token
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    // Return the token in the response
     return NextResponse.json({ success: true, token });
   } catch (err) {
     console.error("Login error", err);
