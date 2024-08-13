@@ -12,7 +12,8 @@ export async function PUT(
   await dbConnect();
 
   try {
-    const token = req.headers.get("Authorization")?.split(" ")[1]; // Extract token from the Authorization header
+    // Extract and verify the token
+    const token = req.headers.get("Authorization")?.split(" ")[1];
     if (!token) {
       return NextResponse.json(
         { success: false, message: "No token provided" },
@@ -21,7 +22,6 @@ export async function PUT(
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-
     let userId: string;
     if (typeof decoded !== "string" && (decoded as JwtPayload).userId) {
       userId = (decoded as JwtPayload).userId as string;
@@ -32,8 +32,8 @@ export async function PUT(
       );
     }
 
+    // Ensure taskId is provided
     const taskId = params.taskId;
-
     if (!taskId) {
       return NextResponse.json(
         { success: false, message: "Task ID is required" },
@@ -41,15 +41,25 @@ export async function PUT(
       );
     }
 
+    // Extract task details from request body
     const { title, description, status, priority, deadline } = await req.json();
 
-    // Find the task and update it
+    // Ensure title is provided
+    if (!title) {
+      return NextResponse.json(
+        { success: false, message: "Title is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find and update the task
     const updatedTask = await Task.findOneAndUpdate(
-      { _id: taskId, userId }, // Ensure the task belongs to the user
+      { _id: taskId, userId }, // Ensure task belongs to user
       { title, description, status, priority, deadline },
       { new: true }
     );
 
+    // Check if task was updated
     if (!updatedTask) {
       return NextResponse.json(
         {

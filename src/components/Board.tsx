@@ -1,42 +1,67 @@
 "use client";
 
-import React from "react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import Column from "./Column";
+import React, { useEffect, useState } from "react";
+import TaskColumn from "@/components/TaskColumn";
+import { Task, TaskColumns } from "@/utils/types";
 
-const Board = ({ tasks }: any) => {
-  const columns = {
+const BoardPage: React.FC = () => {
+  const [tasksByColumn, setTasksByColumn] = useState<TaskColumns>({
     "To-Do": [],
     "In Progress": [],
-    Completed: [],
     "Under Review": [],
-  };
-
-  tasks.forEach((task: { status: string | number }) => {
-    columns[task.status].push(task);
+    Completed: [],
   });
 
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const token = localStorage.getItem("token"); // Retrieve the token from localStorage
+      if (!token) return;
+
+      try {
+        const response = await fetch("/api/tasks", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          const groupedTasks: TaskColumns = data.tasks.reduce(
+            (acc: TaskColumns, task: Task) => {
+              if (!acc[task.status]) {
+                acc[task.status] = [];
+              }
+              acc[task.status].push(task);
+              return acc;
+            },
+            {}
+          );
+
+          setTasksByColumn(groupedTasks);
+        } else {
+          console.error(data.message);
+        }
+      } catch (error) {
+        console.error("Failed to fetch tasks:", error);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
   return (
-    <DragDropContext onDragEnd={() => {}}>
-      <div className="flex space-x-4">
-        {Object.keys(columns).map((columnId) => (
-          <Droppable key={columnId} droppableId={columnId}>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="w-1/4"
-              >
-                <h2 className="text-xl font-bold mb-4">{columnId}</h2>
-                <Column tasks={columns[columnId]} />
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        ))}
-      </div>
-    </DragDropContext>
+    <div className="flex flex-row justify-center space-x-4 p-8 bg-gray-200 min-h-screen">
+      {Object.keys(tasksByColumn).map((status) => (
+        <TaskColumn
+          key={status}
+          title={status}
+          tasksByColumn={tasksByColumn}
+          setTasksByColumn={setTasksByColumn}
+        />
+      ))}
+    </div>
   );
 };
 
-export default Board;
+export default BoardPage;
